@@ -24,7 +24,7 @@ US_WATCHLIST = [
 # Fokus: Utility & Infrastructure Crypto Spot di Ajaib Kripto (Hindari meme coin murni)
 CRYPTO_WATCHLIST = [
     "SUI20947-USD", "TAO22974-USD", "RENDER-USD", "ONDO-USD",
-    "NEAR-USD", "AVAX-USD", "LINK-USD", "INJ-USD", "TIA22861-USD", "AKT-USD"
+    "NEAR-USD", "AVAX-USD", "LINK-USD", "INJ-USD", "TIA-USD", "AKT-USD"
 ]
 
 
@@ -194,7 +194,7 @@ Format output wajib singkat, padat, berbahasa Indonesia untuk Telegram (gunakan 
 3. Ingatkan 1 kalimat manajemen risiko agar tetap disiplin.
 """
     response = client.models.generate_content(
-        model="gemini-2.5-flash",
+        model="gemini-3.8-flash",
         contents=prompt
     )
     return response.text
