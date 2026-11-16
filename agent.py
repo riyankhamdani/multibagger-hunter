@@ -15,13 +15,11 @@ TELEGRAM_CHAT_ID = os.environ["TELEGRAM_CHAT_ID"]
 SEEN_FILE = "seen_alerts.json"
 
 # --- WATCHLIST TERKURASI (TERSEDIA DI AJAIB & LOLOS SEKTOR HALAL) ---
-# Fokus: High-growth small/mid-cap US (AI infra, biotech, space, fintech syariah-friendly, clean energy)
 US_WATCHLIST = [
     "PLTR", "SOFI", "RKLB", "ASTS", "LUNR", "HIMS", "IONQ",
     "ENVX", "SMCI", "ARM", "CELH", "DUOL", "CRWD", "NET", "PATH"
 ]
 
-# Fokus: Utility & Infrastructure Crypto Spot di Ajaib Kripto (Hindari meme coin murni)
 CRYPTO_WATCHLIST = [
     "SUI20947-USD", "TAO22974-USD", "RENDER-USD", "ONDO-USD",
     "NEAR-USD", "AVAX-USD", "LINK-USD", "INJ-USD", "TIA-USD", "AKT-USD"
@@ -94,7 +92,6 @@ def screen_us_stocks():
         except Exception as e:
             print(f"[WARN] Gagal scan US {ticker}: {e}")
 
-    # Urutkan berdasarkan kombinasi pertumbuhan pendapatan & lonjakan volume
     candidates.sort(key=lambda x: (x["rev_growth_pct"] * x["vol_spike"]), reverse=True)
     return candidates[:3]
 
@@ -119,7 +116,7 @@ def screen_crypto_spot():
             last_vol = hist["Volume"].iloc[-1]
             vol_ratio = last_vol / avg_vol if avg_vol > 0 else 1.0
 
-            # Filter Momentum Sehat: Volume naik >= 1.5x rata-rata, harga belum FOMO ekstrem (< 35% seminggu)
+            # Filter Momentum Sehat: Volume naik >= 1.5x rata-rata, harga belum FOMO ekstrem
             if vol_ratio >= 1.5 and -5 <= pct_7d <= 35:
                 clean_symbol = ticker.split("-")[0]
                 clean_symbol = "".join([c for c in clean_symbol if not c.isdigit()])
@@ -131,7 +128,7 @@ def screen_crypto_spot():
                     "pct_24h": round(float(pct_24h), 1),
                     "pct_7d": round(float(pct_7d), 1),
                     "vol_spike": round(float(vol_ratio), 2),
-                    "cl_price": round(float(price) * 0.85, 4),   # Cut loss -15% (volatilitas kripto)
+                    "cl_price": round(float(price) * 0.85, 4),   # Cut loss -15%
                     "tp1_price": round(float(price) * 2.00, 4),  # TP1 +100% (Tarik modal)
                     "tp2_price": round(float(price) * 3.50, 4),  # TP2 +250%
                 })
@@ -193,11 +190,20 @@ Format output wajib singkat, padat, berbahasa Indonesia untuk Telegram (gunakan 
    - TP 2 (Moonbag)
 3. Ingatkan 1 kalimat manajemen risiko agar tetap disiplin.
 """
-    response = client.models.generate_content(
-        model="gemini-3.8-flash",
-        contents=prompt
-    )
-    return response.text
+
+    for attempt in range(1, 4):
+        try:
+            response = client.models.generate_content(
+                model="gemini-3.8-flash",
+                contents=prompt
+            )
+            return response.text
+        except Exception as e:
+            print(f"[WARN] Gemini percobaan {attempt}/3 gagal: {e}")
+            if attempt < 3:
+                time.sleep(15)
+            else:
+                raise
 
 
 def send_telegram(message):
