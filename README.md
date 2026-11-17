@@ -1,65 +1,100 @@
 # 🎯 Multibagger Hunter: Autonomous US Equity & Swing Setup Radar
 
-[![Multibagger Hunter Execution](https://github.com/riyankhamdani/multibagger-hunter/actions/workflows/agent.yml/badge.svg)](https://github.com/riyankhamdani/multibagger-hunter/actions/workflows/agent.yml)
-![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
+[![Multibagger Hunter Workflow](https://github.com/riyankhamdani/multibagger-hunter/actions/workflows/agent.yml/badge.svg)](https://github.com/riyankhamdani/multibagger-hunter/actions)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An autonomous, serverless US equity screening and swing-setup alert pipeline powered by Python, Gemini AI, and GitHub Actions. Designed to identify asymmetric risk-to-reward opportunities and deliver actionable trade parameters (entry zones, stop-loss, and take-profit targets) directly to Telegram with zero hosting overhead.
+An autonomous, serverless US equity screening and swing-setup alert pipeline engineered to surface asymmetric risk-to-reward opportunities. It filters high-momentum and catalyst-driven tickers, validates thesis fundamentals with Gemini AI, and delivers structured trade execution parameters straight to Telegram.
 
----
-
-## 🏗️ Architecture & Workflow
-
-The pipeline operates as an event-driven, zero-infrastructure-cost workflow orchestrated entirely via GitHub Actions:
-
-1. **Scheduled Trigger (`.github/workflows/agent.yml`):** Executes automatically on a cron schedule aligned with US market hours.
-2. **Screening & AI Analysis (`agent.py`):** Fetches market candidates, filters fundamentals/momentum criteria, and leverages Gemini API (with automatic model fallback) to validate catalysts and structure risk parameters.
-3. **Git-Backed State Persistence (`seen_alerts.json`):** Tracks previously alerted tickers and setups. After each run, `actions-user` automatically commits updates back to the repository to guarantee idempotency and eliminate duplicate notifications.
-4. **Instant Delivery:** Pushes formatted setups—including Entry Range, Stop Loss (SL), and Take Profit (TP)—via the Telegram Bot API.
+Powered by Google Gemini API (`google-genai` SDK), automated market/catalyst screening, and scheduled GitHub Actions workflows.
 
 ---
 
-## 📂 Repository Structure
+## 🏗️ Architecture & Pipeline Flow
+
+The agent executes on a scheduled serverless cron aligned with US market sessions, deduplicating tickers against git-persisted state, synthesizing risk-reward parameters via Gemini, and dispatching formatted alerts to Telegram.
+
+```mermaid
+flowchart LR
+    A[Cron Trigger\nGitHub Actions] --> B[Market & Catalyst\nScreener]
+    B --> C[Deduplication Engine\nseen_alerts.json State]
+    C --> D[Thesis Validation &\nR:R Structuring\nGemini API]
+    D --> E[Alert Formatting\nTelegram Bot API]
+    E --> F[Instant Telegram Alert]
+    E --> G[State Persistence\nGit Auto-Commit]
+```
+
+---
+
+## 🎯 Key Engineering Highlights
+
+- **Asymmetric Risk-to-Reward Structuring:** Automatically calculates actionable Entry Zones, hard Stop-Loss (SL) levels, and tiered Take-Profit (TP) targets to enforce disciplined position sizing.
+- **Catalyst & Momentum Validation:** Combines technical price/volume anomalies with AI-driven catalyst verification (earnings momentum, sector tailwinds, institutional flows) to filter out low-conviction noise.
+- **Resilient Multi-Model Fallback:** Dynamically queries active Gemini models (`gemini-2.5-flash`, `gemini-2.0-flash`, etc.) with exponential backoff to guarantee uninterrupted execution under free-tier rate limits.
+- **GitOps State Ledger:** Commits `seen_alerts.json` back to repository state on every cron cycle via `actions-user` to guarantee idempotency and zero duplicate alerts.
+- **100% Serverless:** Operates with zero hosting or persistent infrastructure costs.
+
+---
+
+## 📱 Live Sample Output (Telegram Notification)
 
 ```text
-multibagger-hunter/
-├── .github/
-│   └── workflows/
-│       └── agent.yml       # Scheduled CI/CD workflow & auto-commit state logic
-├── agent.py                # Core screening, AI evaluation, and Telegram alerting engine
-├── requirements.txt        # Python dependencies
-├── seen_alerts.json        # Persistent state store for deduplicating alerts
-└── README.md               # Project documentation
+🎯 MULTIBAGGER HUNTER — SWING SETUP RADAR
+====================================
+
+🚀 $LUNR — Intuitive Machines, Inc.
+📊 Setup: Post-Pullback Support Reclaim | Catalyst: Lunar Contract Backlog
+
+💵 Execution Parameters:
+• Entry Zone : $12.10 – $12.30
+• Stop Loss  : $11.44 (-6.5% max risk)
+• Target 1   : $14.20 (+16.0%)
+• Target 2   : $16.50 (+34.8%)
+
+🧠 AI Thesis:
+"Strong institutional accumulation following aerospace contract milestones. Price is consolidating above key moving-average support with favorable R:R (>2.5x) ahead of upcoming mission catalysts."
 ```
 
 ---
 
-## 🚀 Setup & Configuration
+## 🛠️ Tech Stack
 
-### 1. Fork or Clone the Repository
-```bash
-git clone [https://github.com/riyankhamdani/multibagger-hunter.git](https://github.com/riyankhamdani/multibagger-hunter.git)
-cd multibagger-hunter
-```
+- **Runtime:** Python 3.11+
+- **LLM Reasoning:** Google Gemini API (`google-genai` SDK with auto-model fallback)
+- **Market Ingestion:** Python HTTP / Market Data & News APIs
+- **Orchestration:** GitHub Actions (`agent.yml`)
+- **Notification Service:** Telegram Bot API (`requests`)
+- **State Store:** Git-persisted JSON (`seen_alerts.json`)
 
-### 2. Configure GitHub Repository Secrets
-Navigate to **Settings → Secrets and variables → Actions** and add the following secrets:
+---
+
+## ⚙️ Environment Configuration
+
+Configure the following secrets in GitHub Repository Settings (`Settings -> Secrets and variables -> Actions`):
 
 | Secret Name | Description |
-| :--- | :--- |
-| `GEMINI_API_KEY` | Google Gemini API key for catalyst analysis and structured thesis generation |
-| `TELEGRAM_BOT_TOKEN` | Bot token obtained from `@BotFather` |
-| `TELEGRAM_CHAT_ID` | Target Telegram user or channel ID for receiving alerts |
+|---|---|
+| `GEMINI_API_KEY` | Google AI Studio API Token |
+| `TELEGRAM_BOT_TOKEN` | Bot API Token from `@BotFather` |
+| `TELEGRAM_CHAT_ID` | Telegram User or Channel ID |
 
-### 3. Enable Workflow Write Permissions
-Ensure GitHub Actions has **Read and write permissions** under **Settings → Actions → General → Workflow permissions** so the pipeline can update `seen_alerts.json` automatically.
+---
 
-### 4. Local Execution (Optional)
+## 🚀 Local Execution
+
 ```bash
+# Clone repository
+git clone [https://github.com/riyankhamdani/multibagger-hunter.git](https://github.com/riyankhamdani/multibagger-hunter.git)
+cd multibagger-hunter
+
+# Install dependencies
 pip install -r requirements.txt
-export GEMINI_API_KEY="your_api_key"
-export TELEGRAM_BOT_TOKEN="your_bot_token"
-export TELEGRAM_CHAT_ID="your_chat_id"
+
+# Run screening pipeline
+export GEMINI_API_KEY="your-gemini-key"
+export TELEGRAM_BOT_TOKEN="your-bot-token"
+export TELEGRAM_CHAT_ID="your-chat-id"
+
 python agent.py
 ```
 
