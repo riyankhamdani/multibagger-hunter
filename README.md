@@ -4,19 +4,19 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-An autonomous, serverless US equity screening and swing-setup alert pipeline engineered to surface asymmetric risk-to-reward opportunities. It filters high-momentum and catalyst-driven tickers, validates thesis fundamentals with Gemini AI, and delivers structured trade execution parameters straight to Telegram.
+An autonomous, serverless US equity screening and swing-setup alert pipeline engineered to surface asymmetric risk-to-reward opportunities. It filters high-momentum tickers, enriches setups with real-time news catalysts via Tavily Search API, validates thesis fundamentals with Gemini AI, and delivers structured trade execution parameters straight to Telegram.
 
-Powered by Google Gemini API (`google-genai` SDK), automated market/catalyst screening, and scheduled GitHub Actions workflows.
+Powered by Google Gemini API (`google-genai` SDK), Tavily Search API, and scheduled GitHub Actions workflows.
 
 ---
 
 ## 🏗️ Architecture & Pipeline Flow
 
-The agent executes on a scheduled serverless cron aligned with US market sessions, deduplicating tickers against git-persisted state, synthesizing risk-reward parameters via Gemini, and dispatching formatted alerts to Telegram.
+The agent executes on a scheduled serverless cron aligned with US market sessions, querying market candidates, fetching real-time catalysts via Tavily, deduplicating tickers against git-persisted state, and dispatching structured risk-reward setups to Telegram.
 
 ```mermaid
 flowchart LR
-    A[Cron Trigger\nGitHub Actions] --> B[Market & Catalyst\nScreener]
+    A[Cron Trigger\nGitHub Actions] --> B[Market Screener &\nTavily Catalyst Search]
     B --> C[Deduplication Engine\nseen_alerts.json State]
     C --> D[Thesis Validation &\nR:R Structuring\nGemini API]
     D --> E[Alert Formatting\nTelegram Bot API]
@@ -28,8 +28,8 @@ flowchart LR
 
 ## 🎯 Key Engineering Highlights
 
+- **Real-Time Catalyst Intelligence (Tavily Integration):** Queries live financial news, earnings releases, and sector catalysts via Tavily Search API to filter out technical setups lacking fundamental momentum.
 - **Asymmetric Risk-to-Reward Structuring:** Automatically calculates actionable Entry Zones, hard Stop-Loss (SL) levels, and tiered Take-Profit (TP) targets to enforce disciplined position sizing.
-- **Catalyst & Momentum Validation:** Combines technical price/volume anomalies with AI-driven catalyst verification (earnings momentum, sector tailwinds, institutional flows) to filter out low-conviction noise.
 - **Resilient Multi-Model Fallback:** Dynamically queries active Gemini models (`gemini-2.5-flash`, `gemini-2.0-flash`, etc.) with exponential backoff to guarantee uninterrupted execution under free-tier rate limits.
 - **GitOps State Ledger:** Commits `seen_alerts.json` back to repository state on every cron cycle via `actions-user` to guarantee idempotency and zero duplicate alerts.
 - **100% Serverless:** Operates with zero hosting or persistent infrastructure costs.
@@ -61,7 +61,7 @@ flowchart LR
 
 - **Runtime:** Python 3.11+
 - **LLM Reasoning:** Google Gemini API (`google-genai` SDK with auto-model fallback)
-- **Market Ingestion:** Python HTTP / Market Data & News APIs
+- **Catalyst & News Search:** Tavily Search API (`tavily-python` / REST)
 - **Orchestration:** GitHub Actions (`agent.yml`)
 - **Notification Service:** Telegram Bot API (`requests`)
 - **State Store:** Git-persisted JSON (`seen_alerts.json`)
@@ -75,6 +75,7 @@ Configure the following secrets in GitHub Repository Settings (`Settings -> Secr
 | Secret Name | Description |
 |---|---|
 | `GEMINI_API_KEY` | Google AI Studio API Token |
+| `TAVILY_API_KEY` | Tavily Search API Token |
 | `TELEGRAM_BOT_TOKEN` | Bot API Token from `@BotFather` |
 | `TELEGRAM_CHAT_ID` | Telegram User or Channel ID |
 
@@ -92,6 +93,7 @@ pip install -r requirements.txt
 
 # Run screening pipeline
 export GEMINI_API_KEY="your-gemini-key"
+export TAVILY_API_KEY="your-tavily-key"
 export TELEGRAM_BOT_TOKEN="your-bot-token"
 export TELEGRAM_CHAT_ID="your-chat-id"
 
