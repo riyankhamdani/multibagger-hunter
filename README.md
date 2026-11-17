@@ -1,4 +1,8 @@
-# 🎯 Multibagger Hunter
+# 🎯 Multibagger Hunter: Autonomous US Equity & Swing Setup Radar
+
+[![Multibagger Hunter Execution](https://github.com/riyankhamdani/multibagger-hunter/actions/workflows/agent.yml/badge.svg)](https://github.com/riyankhamdani/multibagger-hunter/actions/workflows/agent.yml)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
 
 An autonomous, serverless US equity screening and swing-setup alert pipeline powered by Python, Gemini AI, and GitHub Actions. Designed to identify asymmetric risk-to-reward opportunities and deliver actionable trade parameters (entry zones, stop-loss, and take-profit targets) directly to Telegram with zero hosting overhead.
 
