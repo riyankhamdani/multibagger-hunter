@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import requests
@@ -16,10 +17,9 @@ SEEN_FILE = "seen_alerts.json"
 PORTFOLIO_FILE = "portfolio_state.json"
 
 # --- WATCHLIST TERKURASI ---
-# Catatan: SOFI (fintech bunga) & PLTR (kontrak militer) rawan gagal skrining syariah ketat,
-# sesuaikan daftar ini jika ingin 100% compliant.
+# PLTR & SOFI dikomentari agar tetap selaras dengan skrining syariah ketat
 US_WATCHLIST = [
-    "PLTR", "RKLB", "ASTS", "LUNR", "HIMS", "IONQ",
+    "RKLB", "ASTS", "LUNR", "HIMS", "IONQ",
     "ENVX", "SMCI", "ARM", "CELH", "DUOL", "CRWD", "NET", "PATH"
 ]
 
@@ -45,7 +45,7 @@ def load_portfolio():
     # Ubah "ticker" ke None jika slot sudah kosong / selesai TP / Cut Loss
     default_state = {
         "slot_1_us": {
-            "ticker": "LUNR",
+            "ticker": None,
             "entry_price": None,  # Isi harga belimu (misal 11.50) agar bot hitung P&L otomatis
             "modal_rp": 100000
         },
@@ -61,7 +61,7 @@ def load_portfolio():
     return load_json(PORTFOLIO_FILE, default_state)
 
 
-def is_recently_alerted(ticker, seen_data, cooldown_hours=72):
+def is_recently_alerted(ticker, seen_data, cooldown_hours=120):
     last_ts = seen_data.get(ticker)
     if not last_ts:
         return False
@@ -250,27 +250,32 @@ Data Kandidat:
 
 Aturan format output Telegram:
 - Gunakan murni tag HTML <b>...</b> dan <code>...</code>. DILARANG KERAS memakai tanda bintang ** atau markdown.
+- Hindari karakter '<' atau '>' mentah di luar tag HTML.
 - Sebutkan Ticker, Harga Saat Ini, dan Katalis Utama (maksimal 2 kalimat).
 - Cantumkan level eksekusi:
-  • Entry Limit Order (jangan kejar harga di atas harga saat ini)
-  • Cut Loss (-7% US / -8% Crypto)
-  • Trigger Anti-Rugi (saat profit +10%, wajib geser SL ke harga beli)
-  • TP 1 (+25% / +30% - amankan profit) & TP 2 (Moonbag)
+  - Entry Limit Order (jangan kejar harga di atas harga saat ini)
+  - Cut Loss (-7% US / -8% Crypto)
+  - Trigger Anti-Rugi (saat profit +10%, wajib geser SL ke harga beli)
+  - TP 1 (+25% / +30% - amankan profit) & TP 2 (Moonbag)
 """
 
-    for attempt in range(1, 4):
-        try:
-            response = client.models.generate_content(
-                model="gemini-3.8-flash",
-                contents=prompt
-            )
-            return response.text
-        except Exception as e:
-            print(f"[WARN] Gemini percobaan {attempt}/3 gagal: {e}")
-            if attempt < 3:
-                time.sleep(15)
-            else:
-                raise
+    models_to_try = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash"]
+    for model_name in models_to_try:
+        for attempt in range(1, 3):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt
+                )
+                if response and response.text:
+                    return response.text
+            except Exception as e:
+                print(f"[WARN] {model_name} percobaan {attempt}/2 gagal: {e}")
+                if "404" in str(e) or "NOT_FOUND" in str(e):
+                    break
+                time.sleep(10 * attempt)
+
+    raise Exception("Seluruh kandidat model Gemini gagal merespons.")
 
 
 def send_telegram(message):
@@ -282,6 +287,11 @@ def send_telegram(message):
         "disable_web_page_preview": True
     }
     r = requests.post(url, json=payload, timeout=15)
+    if r.status_code != 200:
+        print(f"[WARN] Gagal kirim HTML ({r.text[:120]}), fallback teks biasa...")
+        payload.pop("parse_mode")
+        payload["text"] = re.sub(r"<[^>]+>", "", message)
+        r = requests.post(url, json=payload, timeout=15)
     r.raise_for_status()
 
 
@@ -293,14 +303,14 @@ def main():
     us_hits = []
     crypto_hits = []
 
-    # Cek Slot 1 (Saham US): Jika sedang pegang LUNR, kunci sinyal beli baru
+    # Cek Slot 1 (Saham US): Jika kosong, scan kandidat baru
     us_lock_msg = check_active_slot(portfolio["slot_1_us"], "SLOT 1 (SAHAM US)", max_loss_pct=7.0)
     if us_lock_msg:
         status_messages.append(us_lock_msg)
     else:
         us_hits = [x for x in screen_us_stocks() if not is_recently_alerted(x["ticker"], seen)]
 
-    # Cek Slot 2 (Crypto Spot): Jika kosong, baru scan kandidat baru
+    # Cek Slot 2 (Crypto Spot): Jika kosong, scan kandidat baru
     crypto_lock_msg = check_active_slot(portfolio["slot_2_crypto"], "SLOT 2 (CRYPTO)", max_loss_pct=8.0)
     if crypto_lock_msg:
         status_messages.append(crypto_lock_msg)
